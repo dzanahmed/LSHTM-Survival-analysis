@@ -1,4 +1,3 @@
-
 library(survival)
 
 ##############################################################
@@ -7,7 +6,7 @@ library(survival)
 
 ##question 1##
 
-pbc<-read.table("U:/Download/Teach/MedSt_Survival/pbcbase.csv",sep=",",header=T)
+pbc <- read_csv("Datasets/pbcbase_2021.csv")
 
 head(pbc)
 
@@ -57,7 +56,7 @@ survdiff(Surv(time,d)~treat,data=pbc)
 ########################part 2 - whitehall####################
 ##############################################################
   
-whl<-read.table("U:/Download/Teach/MedSt_Survival/whitehall.csv",sep=",",header=T)
+whl <- read_csv("Datasets/whitehall.csv")
   
 ##question 1##
   
