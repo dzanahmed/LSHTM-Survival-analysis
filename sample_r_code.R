@@ -102,5 +102,3 @@ fit <- survfit(Surv(time, status) ~ sex, data = lung)
 #--- a plotting function from survminer. It it runs correctly a plot of two
 #--- survival functions, one light blue, the other red should appear
 ggsurvplot(fit, data = lung)
-
-
