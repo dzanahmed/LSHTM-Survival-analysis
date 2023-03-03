@@ -2,11 +2,11 @@
 library(survival)
 library(eha)
 library(flexsurv)
-library(ggplot2)
+library(tidyverse)
 library(survminer)
 
 # Change the below line to your directory path
-setwd("practical3")
+#setwd("practical3")
 
 #------
 #function used later for obtaining 95% confidence intervals from weibreg or phreg
@@ -22,7 +22,7 @@ confint.95<-function(mod){
 #------
 #load the data and format the dates
 
-whl<-read.table("whitehall.csv",sep=",",header=T)
+whl<-read_csv(file='Datasets/whitehall.csv')
 
 whl$timein=as.Date(whl$timein,"%d%b%Y")
 whl$timeout=as.Date(whl$timeout,"%d%b%Y")
@@ -47,65 +47,177 @@ median(whl$time[whl$grade==2 & whl$chd==1])
 #------
 #question 2
 
-whl.km <- survfit(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),data=whl)
-ggsurvplot(whl.km, data = whl,conf.int = T,ylim=c(0.8,1),censor=F,legend.title="Job grade",legend.labs = c("Grade 1","Grade 2"))
 
-summary(whl.km,times=c(5,10,15))
+whl.km <-
+  survfit(Surv(
+    time = timeout,
+    event = chd,
+    origin = timein
+  ) ~ as.factor(grade),
+  data = whl)
 
-survdiff(Surv(time=timeout,event=chd,origin=timein)~grade,data=whl)
+ggsurvplot(
+  whl.km,
+  data = whl,
+  conf.int = T,
+  ylim = c(0.8, 1),
+  censor = F,
+  legend.title = "Job grade",
+  legend.labs = c("Grade 1", "Grade 2"), 
+)
+
+
+survdiff(Surv(
+  time = timeout,
+  event = chd,
+  origin = timein
+) ~ grade, data = whl)
 
 #------
 #question 3
 
 #using weibreg with shape=1
-whl.exp<- weibreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),shape=1,data=whl)
+whl.exp <-
+  weibreg(
+    Surv(
+      time = timeout,
+      event = chd,
+      origin = timein
+    ) ~ as.factor(grade),
+    shape = 1,
+    data = whl
+  )
 whl.exp
 confint.95(whl.exp)
 
 #using flexsurvreg
-whl.exp2<- flexsurvreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),dist="exponential",data=whl)
+whl.exp2 <-
+  flexsurvreg(
+    Surv(
+      time = timeout,
+      event = chd,
+      origin = timein
+    ) ~ as.factor(grade),
+    dist = "exponential",
+    data = whl
+  )
 whl.exp2
 
 #using survreg
-whl.exp3<- survreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),dist="exponential",data=whl)
+whl.exp3 <-
+  survreg(
+    Surv(
+      time = timeout,
+      event = chd,
+      origin = timein
+    ) ~ as.factor(grade),
+    dist = "exponential",
+    data = whl
+  )
 summary(whl.exp3)
+
 
 #changing the timescale
 #note that survreg and phreg do not allow delayed entry so we have to use weibreg or flexsurvreg here
-whl.exp4<- weibreg(Surv(time=timein,time2=timeout,event=chd,origin=timebth)~as.factor(grade),shape=1,data=whl)
+whl.exp4 <-
+  weibreg(
+    Surv(
+      time = timein,
+      time2 = timeout,
+      event = chd,
+      origin = timebth
+    ) ~ as.factor(grade),
+    shape = 1,
+    data = whl
+  )
 whl.exp4
 confint.95(whl.exp4)
 
 #------
 #question 4
 
+
 #using weibreg
-whl.weib<- weibreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),data=whl)
+whl.weib <-
+  weibreg(Surv(
+    time = timeout,
+    event = chd,
+    origin = timein
+  ) ~ as.factor(grade),
+  data = whl)
 whl.weib
 confint.95(whl.weib)
 
+
 #using flexsurvreg
-whl.weib2<- flexsurvreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),dist="weibull",data=whl)
+whl.weib2 <-
+  flexsurvreg(
+    Surv(
+      time = timeout,
+      event = chd,
+      origin = timein
+    ) ~ as.factor(grade),
+    dist = "weibull",
+    data = whl
+  )
 whl.weib2
 
 #using survreg
-whl.weib3<- survreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),dist="weibull",data=whl)
+whl.weib3 <-
+  survreg(
+    Surv(
+      time = timeout,
+      event = chd,
+      origin = timein
+    ) ~ as.factor(grade),
+    dist = "weibull",
+    data = whl
+  )
 summary(whl.weib3)
 
 #------
 #question 5
 
-whl.km <- survfit(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade),data=whl)
-ggsurvplot(whl.km, data = whl,conf.int = T,fun="cloglog",censor=F,legend.title="Job grade",legend.labs = c("Grade 1","Grade 2"))
+whl.km <-
+  survfit(Surv(
+    time = timeout,
+    event = chd,
+    origin = timein
+  ) ~ as.factor(grade),
+  data = whl)
+
+ggsurvplot(
+  whl.km,
+  data = whl,
+  conf.int = T,
+  fun = "cloglog",
+  censor = F,
+  legend.title = "Job grade",
+  legend.labs = c("Grade 1", "Grade 2")
+)
 
 #alternative basic plot
-plot(whl.km,conf.int=T,col=c("red","black"),mark.time=F,xlab="log time", 
-     ylab="log(-log S(t))",fun="cloglog")
+plot(
+  whl.km,
+  conf.int = T,
+  col = c("red", "black"),
+  mark.time = F,
+  xlab = "log time",
+  ylab = "log(-log S(t))",
+  fun = "cloglog"
+)
 
 #------
 #question 6
 
-whl.weib.age<- weibreg(Surv(time=timeout,event=chd,origin=timein)~as.factor(grade)+agein,data=whl)
+
+whl.weib.age <-
+  weibreg(Surv(
+    time = timeout,
+    event = chd,
+    origin = timein
+  ) ~ as.factor(grade) + agein,
+  data = whl)
 whl.weib.age
 confint.95(whl.weib.age)
 
@@ -158,6 +270,8 @@ survplot.weibreg<-function(mod,t,grade,agein){
   surv<-exp(-lambda*(t^kappa)*exp(beta[1]*(grade-1)+beta[2]*agein))
   return(surv)
 }
+
+survplot.weibreg()
 
 curve(survplot.weibreg(whl.weib.age,x,grade=1,agein=45),lty=1,col="red",xlab="Time",ylab="Survival probability",
       ylim=c(0,1),xlim=c(0,20))
