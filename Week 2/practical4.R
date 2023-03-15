@@ -27,10 +27,10 @@ pbc$d[pbc$time>=0.052 & pbc$time<=0.053]#they have the event
 pbc$time[pbc$time>=0.052 & pbc$time<=0.053] #this is their actual recorded time
 pbc$id[pbc$time>=0.052 & pbc$time<=0.053] #this is the ID number of the person who has the event a time 0.052
 
-pbc$treat[pbc$id==922]#thisperson is in treatment group 1, i.e. x=0
+pbc$treat[pbc$id==922]#this person is in treatment group 1, i.e. x=0
 
 #now let's look at all individuals at risk at time 0.052
-#there are 181 people in the risk set at tiem 0.052 (which includes person 922 who had the event)
+#there are 181 people in the risk set at time 0.052 (which includes person 922 who had the event)
 index.time=pbc$time[pbc$time>=0.052 & pbc$time<=0.053]
 sum(pbc$time>=index.time)
 
