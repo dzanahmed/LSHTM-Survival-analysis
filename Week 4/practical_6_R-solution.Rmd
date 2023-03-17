@@ -1,0 +1,245 @@
+---
+title: 'Survival Analysis: Practical 6. Competing risks and multistate models'
+output:
+  pdf_document:
+  toc: yes
+---
+
+# R setup and data importation
+```{r}
+library(survival)
+library(Epi)
+
+
+load(file="../Datasets/aaatrial_2016.RData")
+
+```
+
+
+
+# Questions 1 and 2
+Summarise the data using some basic descriptive analyses to familiarise yourself with the dataset. The variable group is a binary variable indicating randomisation arm. 
+
+```{r}
+#N obs
+nrow(aaatrial)
+summary(aaatrial)
+
+table(aaatrial$group, aaatrial$alldeath)
+aaatrial$group <- as.factor((aaatrial$group))
+table(aaatrial$deathtype, aaatrial$aaadeath)
+
+aaatrial$futime <- as.numeric(aaatrial$timeout-aaatrial$dateran)/365.25
+
+summary(aaatrial$futime)
+summary(aaatrial[aaatrial$alldeath==0,]$futime)
+
+table(aaatrial$aaadeath, aaatrial$group)
+prop.table(table(aaatrial$aaadeath, aaatrial$group),margin=2)
+
+table(aaatrial$deathtype, aaatrial$group) 
+prop.table(table(aaatrial$deathtype, aaatrial$group),margin=2) 
+
+table(aaatrial$optype, aaatrial$group)
+table(aaatrial$optype, aaatrial$group, useNA="always")
+
+prop.table(table(aaatrial$optype, aaatrial$group),margin=2)
+
+```
+
+
+# Question 3
+
+```{r}
+
+# (a) - This is the Kaplan-Meier
+km1 <- survfit(Surv(futime, alldeath)~group, data=aaatrial)
+
+summary(km1, times=c(1,5,10))
+
+plot(km1, ylim=c(0,1),col=c(1,2), xlab="Time since randomisation (years)", 
+     ylab="Survival probability", conf.int=F)
+legend(0,0.8, c("Control", "Screening"), lty=1, col=1:2, lwd=2)
+
+# (b) - This is the logrank test
+survdiff(Surv(futime, alldeath)~group, data=aaatrial)
+
+# (c) - This is the Cox model for all-cause mortality
+(coxmod1 <- coxph(Surv(futime, alldeath)~group, data=aaatrial, ties = "breslow"))
+
+summary(coxmod1)
+
+```
+
+**DZAJ** There seems to be no evidence of benefit of screening program.
+
+# Question 4
+
+```{r}
+
+# (a) 
+survfit(Surv(time=futime,event=aaadeath) ~ 1, data=aaatrial)
+# 105 AAA deaths
+
+survfit(Surv(time=futime,event=deathtype==1)~ 1, data=aaatrial)
+# 3935 non-AAAA deaths
+
+survfit(Surv(time=futime,event=deathtype==0)~ 1, data=aaatrial)
+# 9522 Censored
+
+# (b) Cumulative incidence functions (AAA death and Non-AAA death)
+library(cmprsk)
+
+cumincfit1 <- cuminc(ftime=aaatrial$futime, fstatus=aaatrial$deathtype, group=aaatrial$group)
+
+
+# (c)
+## Plot of the cumulative incidence function for the AAA-death
+plot(cumincfit1, lwd=2, col=1:2, lty=1:4, ylim=c(0,0.4),
+     curvlab = c(paste0(levels(aaatrial$group), " Non-AAA death "), 
+                 paste0(levels(aaatrial$group), " AAA Death")), 
+     panel.first=abline(h=seq(0,1,0.1), col="grey", lty=2))
+
+plot(cumincfit1[["0 2"]]$time, cumincfit1[["0 2"]]$est, type="l", 
+     col="blue", lwd=2, ylim=c(0,0.012), ylab="Prob AAA-Death", xlab="Time (years)",
+     panel.first=abline(h=seq(0,0.02,0.001), col="grey", lty=2))
+lines(cumincfit1[["1 2"]]$time, cumincfit1[["1 2"]]$est, col="red", lwd=2)
+legend("topleft", legend=c("Controls", "Screened"),
+       col=c("blue", "red"), lty=c(1,1), lwd=2)
+
+options(scipen=999)
+(prob <- timepoints(cumincfit1, times=c(1,3,5,10)))
+
+
+# cumincfit1$Tests
+
+
+```
+
+# Question 5
+
+```{r}
+causespeCox <- coxph(Surv(futime, aaadeath)~group, data=aaatrial)
+summary(causespeCox)
+```
+
+
+# Question 6
+
+```{r}
+
+# (a) Fine and Gray model for the subdistribution hazard
+crrfit1 <- crr(aaatrial$futime, aaatrial$deathtype, cov1=aaatrial$group, failcode=2)
+summary(crrfit1)
+
+# (c)(d) Predict CIFs
+mypredCIF <- predict.crr(crrfit1, cov1 = c(0,1))
+plot(mypredCIF, xlab="Time (years)", 
+     ylab="Prob AAA-Death (predicted)", lty=2, color=c("blue", "red"))
+
+# By hand calculation
+baseCuminc <- predict.crr(crrfit1, cov1 = 0)
+CumincGp2 <- 1-(1-baseCuminc[,2])^exp(crrfit1$coef)
+
+lines(baseCuminc[,1], baseCuminc[,2], col="blue", type="s", lty=3)
+lines(baseCuminc[,1], CumincGp2, col="red", type="s", lty=3)
+
+legend("topleft", legend=c("Controls", "Screened"),
+       col=c("blue", "red"), lty=c(2,2), lwd=2)
+
+
+
+# (e) Comparison and Proportional subdistribution hazard assumption
+plot(cumincfit1[["0 2"]]$time, cumincfit1[["0 2"]]$est, type="l", 
+     col="blue", lwd=2, ylim=c(0,0.012), ylab="Prob AAA-Death", xlab="Time (years)",
+     panel.first=abline(h=seq(0,0.02,0.001), col="grey", lty=2))
+lines(cumincfit1[["1 2"]]$time, cumincfit1[["1 2"]]$est, col="red", lwd=2)
+
+lines(baseCuminc[,1], baseCuminc[,2], col="blue", type="s", lty=2, lwd=2)
+lines(baseCuminc[,1], CumincGp2, col="red", type="s", lty=2,  lwd=2)
+
+legend("topleft", 
+       legend=c("Non-param Controls", "Non-param Screened", "Subdist Haz Controls", "Subdist Haz Screened"),
+       col=c("blue", "red"), lty=c(1,2), lwd=2)
+
+
+crrfit2 <- crr(aaatrial$futime, aaatrial$deathtype, cov1=aaatrial$group, 
+               failcode=2, cov2=aaatrial$group, function(t){t>1})
+summary(crrfit2)
+
+```
+
+
+# Multistate models
+
+# Question 5
+
+```{r}
+
+subset(aaatrial, id=="10680")
+
+idx <- as.numeric(aaatrial$timeout-aaatrial$opdate)
+aaatrial$id[idx==0&!is.na(idx)]
+
+aaatrial$timeop <- as.numeric(aaatrial$opdate-aaatrial$dateran)/365.25
+aaatrial[idx==0&!is.na(idx),]$futime <- aaatrial[idx==0&!is.na(idx),]$futime + 0.5/365.25
+  
+sum(!is.na(aaatrial$opdate)); sum(!is.na(aaatrial$timeop));
+head(aaatrial)
+
+mydat <- Lexis(entry.status="Rand", id=aaatrial$id,
+               exit = list(tft = futime), 
+               exit.status = factor(alldeath, labels = c("Censor", "Dead")),
+               data = aaatrial)
+head(mydat)
+
+mydattr <- cutLexis(mydat, cut=mydat$timeop,
+                 precursor.states="Rand",
+                 new.state="Oper")
+summary(mydattr)
+
+mydattr[mydattr$id %in% c("63", "64", "13046"),]
+
+mydattr[mydattr$id %in% c(60:70),]
+
+```
+
+
+# Question 6
+
+```{r}
+
+# (a)
+
+m.haz3 <- coxph(Surv(tft, tft+lex.dur, lex.Xst=="Oper") ~ group,
+                 data = subset(mydattr, lex.Cst=="Rand"), method="breslow")
+summary(m.haz3)
+
+
+mydattr[is.na(mydattr$timeop),]$timeop <- mydattr[is.na(mydattr$timeop),]$futime
+m.haz3bis <- coxph(Surv(timeop, lex.Xst=="Oper") ~ group,
+                 data = subset(mydattr, lex.Cst=="Rand"), method="breslow")
+summary(m.haz3bis)
+
+# (b) Time-dependent coefficient (!! Does not work with factor variable)
+
+table(mydattr$group)
+mydattr$Igroup1<-ifelse(mydattr$group==1, 1, 0)
+table(mydattr$group, mydattr$Igroup1)
+
+m.haz3TD1 <- coxph(Surv(tft, tft+lex.dur, lex.Xst=="Oper") ~ Igroup1 + tt(Igroup1),
+                 data = subset(mydattr, lex.Cst=="Rand"), 
+                 tt=function(x,t,...) {x*(t)})
+summary(m.haz3TD1)
+
+
+m.haz3TD2 <- coxph(Surv(tft, tft+lex.dur, lex.Xst=="Oper") ~ Igroup1 + tt(Igroup1),
+                 data = subset(mydattr, lex.Cst=="Rand"), method="breslow", 
+                 tt=function(x,t,...) {x*(t>1)})
+summary(m.haz3TD2)
+
+
+
+```
+
+
