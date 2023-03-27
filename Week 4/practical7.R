@@ -1,13 +1,12 @@
 library(survival)
 library(Epi)
-library(ggplot2)
+library(tidyverse)
 library(survminer)
 
 # Package for writing decorated code blocks - from Ignazio
 library(bannerCommenter)
 
 # Change the below line to your directory path
-setwd("practical7")
 
 ###################################################
 ########################Part A#####################
@@ -15,7 +14,7 @@ setwd("practical7")
 
 #------
 #load the data and take a look
-hip<-read.table("hip4.csv",sep=",",header=T)
+hip <- read_csv("Datasets/hip4.csv")
 
 #------
 #question 1
@@ -94,7 +93,7 @@ summary(hip.split.cox)
 ########################Part B#####################
 ###################################################
 
-kidney<-read.table("kidney_frailty.csv",sep=",",header=T)
+kidney<-read_csv("Datasets/kidney_frailty.csv")
 
 summary(coxph(Surv(time, infect)~age+female+frailty(patient),data=kidney))
 
